@@ -1,0 +1,2188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Bus Overcrowding Detection & Alert System | MITS Kochi</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #0a0e17;
+      --bg-secondary: #111827;
+      --bg-card: #182234;
+      --bg-card-hover: #1f2c42;
+      --border-color: #27354f;
+      --accent-blue: #38bdf8;
+      --accent-cyan: #06b6d4;
+      --safe-green: #10b981;
+      --safe-green-glow: rgba(16, 185, 129, 0.4);
+      --warn-amber: #f59e0b;
+      --warn-amber-glow: rgba(245, 158, 11, 0.4);
+      --alert-red: #ef4444;
+      --alert-red-glow: rgba(239, 68, 68, 0.6);
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --lcd-bg: #1c2e1c;
+      --lcd-text: #5af55a;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-primary);
+      color: var(--text-main);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Top Navigation Bar */
+    header {
+      background: linear-gradient(180deg, #131c2e 0%, #0e1524 100%);
+      border-bottom: 1px solid var(--border-color);
+      padding: 0.85rem 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .brand-logo {
+      width: 44px;
+      height: 44px;
+      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 1.15rem;
+      color: #fff;
+      box-shadow: 0 0 15px rgba(239, 68, 68, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .brand-text h1 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -0.01em;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .brand-text p {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .badge-pill {
+      font-size: 0.65rem;
+      padding: 0.15rem 0.5rem;
+      border-radius: 9999px;
+      background: rgba(56, 189, 248, 0.15);
+      color: var(--accent-blue);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .header-metrics {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+    }
+
+    .telemetry-chip {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      padding: 0.4rem 0.8rem;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--safe-green);
+      box-shadow: 0 0 8px var(--safe-green);
+      animation: pulseDot 2s infinite;
+    }
+
+    @keyframes pulseDot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.85); }
+    }
+
+    .btn-audio {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 0.45rem 0.9rem;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: all 0.2s;
+    }
+
+    .btn-audio:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--accent-blue);
+    }
+
+    .btn-audio.active {
+      background: rgba(16, 185, 129, 0.15);
+      border-color: var(--safe-green);
+      color: var(--safe-green);
+    }
+
+    /* Tab Bar */
+    .tab-nav {
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+      padding: 0 1.5rem;
+      display: flex;
+      gap: 0.5rem;
+      overflow-x: auto;
+    }
+
+    .tab-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 0.9rem 1.25rem;
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      position: relative;
+      transition: color 0.2s;
+      white-space: nowrap;
+    }
+
+    .tab-btn:hover {
+      color: var(--text-main);
+    }
+
+    .tab-btn.active {
+      color: var(--accent-blue);
+      font-weight: 600;
+    }
+
+    .tab-btn.active::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: var(--accent-blue);
+      box-shadow: 0 -2px 8px var(--accent-blue);
+    }
+
+    /* Main Container */
+    main {
+      padding: 1.5rem;
+      max-width: 1560px;
+      margin: 0 auto;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+      animation: fadeIn 0.25s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Grid Layouts */
+    .grid-dashboard {
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      gap: 1.5rem;
+    }
+
+    @media (max-width: 1100px) {
+      .grid-dashboard {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1.25rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .card-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    /* Bus Simulation Canvas & Stage */
+    .bus-stage-container {
+      position: relative;
+      background: #080c14;
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1.25rem;
+      overflow: hidden;
+    }
+
+    .bus-view-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .route-info {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .route-info span {
+      color: var(--accent-blue);
+      font-weight: 600;
+    }
+
+    /* Bus Visual Graphic */
+    .bus-graphic {
+      position: relative;
+      width: 100%;
+      height: 290px;
+      background: #0b1320;
+      border: 2px solid #243550;
+      border-radius: 20px;
+      padding: 15px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.7);
+    }
+
+    .bus-roof {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px dashed rgba(255, 255, 255, 0.1);
+      padding-bottom: 8px;
+    }
+
+    .bus-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      background: #1e293b;
+      padding: 2px 8px;
+      border-radius: 4px;
+      color: #38bdf8;
+      border: 1px solid #334155;
+    }
+
+    .bus-interior {
+      display: flex;
+      justify-content: space-between;
+      align-items: stretch;
+      height: 190px;
+      position: relative;
+      gap: 12px;
+    }
+
+    /* Driver Cabin */
+    .driver-cabin {
+      width: 90px;
+      background: rgba(30, 41, 59, 0.7);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      border-radius: 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 8px;
+      position: relative;
+    }
+
+    .steering-wheel {
+      width: 32px;
+      height: 32px;
+      border: 4px solid #64748b;
+      border-radius: 50%;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .steering-center {
+      width: 10px;
+      height: 10px;
+      background: #94a3b8;
+      border-radius: 50%;
+    }
+
+    .driver-avatar {
+      font-size: 1.5rem;
+    }
+
+    .cabin-label {
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    /* Entry Door & Exit Door Sensor Zones */
+    .door-zone {
+      width: 80px;
+      border: 2px dashed #38bdf8;
+      border-radius: 8px;
+      background: rgba(56, 189, 248, 0.05);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px;
+      position: relative;
+    }
+
+    .door-zone.exit {
+      border-color: #f59e0b;
+      background: rgba(245, 158, 11, 0.05);
+    }
+
+    .sensor-beam {
+      width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      background: #38bdf8;
+      box-shadow: 0 0 10px #38bdf8;
+      transition: all 0.15s;
+    }
+
+    .sensor-beam.beam-b {
+      background: #ec4899;
+      box-shadow: 0 0 10px #ec4899;
+    }
+
+    .sensor-beam.triggered {
+      background: #ef4444 !important;
+      box-shadow: 0 0 15px #ef4444 !important;
+      transform: scaleY(1.8);
+    }
+
+    .door-label {
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* Passenger Cabin Matrix */
+    .passenger-cabin {
+      flex: 1;
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid #1e293b;
+      border-radius: 10px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .seat-row {
+      display: flex;
+      justify-content: space-around;
+      gap: 6px;
+    }
+
+    .aisle-zone {
+      height: 48px;
+      border-top: 1px dashed rgba(255, 255, 255, 0.1);
+      border-bottom: 1px dashed rgba(255, 255, 255, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 2px 8px;
+      position: relative;
+    }
+
+    .standing-indicator {
+      font-size: 0.65rem;
+      color: var(--text-dim);
+      font-family: 'JetBrains Mono', monospace;
+      position: absolute;
+      left: 8px;
+    }
+
+    .seat {
+      width: 24px;
+      height: 24px;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      transition: all 0.2s;
+    }
+
+    .seat.occupied {
+      background: #0369a1;
+      border-color: #38bdf8;
+      box-shadow: 0 0 8px rgba(56, 189, 248, 0.4);
+    }
+
+    .standee {
+      width: 22px;
+      height: 22px;
+      background: #b45309;
+      border: 1px solid #f59e0b;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      animation: popIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .standee.overcrowd {
+      background: #b91c1c;
+      border-color: #ef4444;
+      box-shadow: 0 0 8px rgba(239, 68, 68, 0.6);
+      animation: pulseOvercrowd 1s infinite alternate;
+    }
+
+    @keyframes pulseOvercrowd {
+      0% { transform: scale(1); }
+      100% { transform: scale(1.15); }
+    }
+
+    @keyframes popIn {
+      0% { transform: scale(0); }
+      100% { transform: scale(1); }
+    }
+
+    /* Simulation Control Deck */
+    .control-deck {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 0.75rem;
+      margin-top: 1rem;
+    }
+
+    .btn-action {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      transition: all 0.2s;
+    }
+
+    .btn-action:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--accent-blue);
+      transform: translateY(-1px);
+    }
+
+    .btn-action.btn-entry {
+      background: rgba(16, 185, 129, 0.12);
+      border-color: rgba(16, 185, 129, 0.4);
+      color: #34d399;
+    }
+
+    .btn-action.btn-entry:hover {
+      background: rgba(16, 185, 129, 0.25);
+      border-color: var(--safe-green);
+    }
+
+    .btn-action.btn-exit {
+      background: rgba(245, 158, 11, 0.12);
+      border-color: rgba(245, 158, 11, 0.4);
+      color: #fbbf24;
+    }
+
+    .btn-action.btn-exit:hover {
+      background: rgba(245, 158, 11, 0.25);
+      border-color: var(--warn-amber);
+    }
+
+    .btn-action.btn-surge {
+      background: rgba(239, 68, 68, 0.15);
+      border-color: rgba(239, 68, 68, 0.4);
+      color: #f87171;
+    }
+
+    .btn-action.btn-surge:hover {
+      background: rgba(239, 68, 68, 0.3);
+      border-color: var(--alert-red);
+    }
+
+    /* Driver In-Bus Hardware Display Panel */
+    .cockpit-panel {
+      background: #0f172a;
+      border: 2px solid #334155;
+      border-radius: 14px;
+      padding: 1.25rem;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+
+    /* LCD 1602 Simulation */
+    .lcd-screen {
+      background: var(--lcd-bg);
+      border: 3px solid #2d4a2d;
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--lcd-text);
+      text-shadow: 0 0 5px rgba(90, 245, 90, 0.7);
+      margin-bottom: 1.25rem;
+      box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.8);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .lcd-screen::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: linear-gradient(rgba(255,255,255,0.03) 50%, transparent 50%);
+      background-size: 100% 4px;
+      pointer-events: none;
+    }
+
+    .lcd-line {
+      font-size: 1.15rem;
+      letter-spacing: 0.1em;
+      line-height: 1.5;
+      white-space: pre;
+    }
+
+    /* Physical LED Indicators */
+    .led-cluster {
+      display: flex;
+      justify-content: space-around;
+      background: #1e293b;
+      padding: 1rem;
+      border-radius: 10px;
+      border: 1px solid #334155;
+      margin-bottom: 1.25rem;
+    }
+
+    .led-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .led-bulb {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: #222;
+      border: 2px solid #444;
+      transition: all 0.25s;
+    }
+
+    .led-green.active {
+      background: var(--safe-green);
+      box-shadow: 0 0 18px var(--safe-green-glow), 0 0 35px var(--safe-green);
+      border-color: #a7f3d0;
+    }
+
+    .led-yellow.active {
+      background: var(--warn-amber);
+      box-shadow: 0 0 18px var(--warn-amber-glow), 0 0 35px var(--warn-amber);
+      border-color: #fde68a;
+    }
+
+    .led-red.active {
+      background: var(--alert-red);
+      box-shadow: 0 0 20px var(--alert-red-glow), 0 0 45px var(--alert-red);
+      border-color: #fecaca;
+      animation: blinkRed 0.4s infinite alternate;
+    }
+
+    @keyframes blinkRed {
+      0% { opacity: 0.3; transform: scale(0.95); }
+      100% { opacity: 1; transform: scale(1.05); }
+    }
+
+    .led-label {
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    /* Buzzer Speaker Unit */
+    .buzzer-box {
+      background: #182234;
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 0.85rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .buzzer-grill {
+      display: flex;
+      gap: 4px;
+    }
+
+    .buzzer-slit {
+      width: 4px;
+      height: 22px;
+      background: #334155;
+      border-radius: 2px;
+    }
+
+    .buzzer-box.active .buzzer-slit {
+      background: var(--alert-red);
+      box-shadow: 0 0 8px var(--alert-red);
+      animation: soundWave 0.2s infinite alternate;
+    }
+
+    @keyframes soundWave {
+      0% { height: 14px; }
+      100% { height: 26px; }
+    }
+
+    /* Stat Cards */
+    .stat-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    @media (max-width: 900px) {
+      .stat-row {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    .stat-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
+    .stat-title {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+    }
+
+    .stat-value {
+      font-size: 1.6rem;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--text-main);
+    }
+
+    .stat-sub {
+      font-size: 0.7rem;
+      color: var(--text-dim);
+    }
+
+    /* Oscilloscope / Waveform */
+    .waveform-canvas {
+      width: 100%;
+      height: 140px;
+      background: #06090e;
+      border-radius: 8px;
+      border: 1px solid #1e293b;
+      margin-top: 0.5rem;
+    }
+
+    /* Tables */
+    .table-container {
+      overflow-x: auto;
+      max-height: 280px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+      text-align: left;
+    }
+
+    th {
+      background: #0f172a;
+      color: var(--text-muted);
+      padding: 0.65rem 0.85rem;
+      font-weight: 600;
+      border-bottom: 1px solid var(--border-color);
+      position: sticky;
+      top: 0;
+    }
+
+    td {
+      padding: 0.6rem 0.85rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      color: var(--text-main);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .tag-critical {
+      background: rgba(239, 68, 68, 0.2);
+      color: #f87171;
+      padding: 2px 6px;
+      border-radius: 4px;
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      font-size: 0.7rem;
+    }
+
+    .tag-warning {
+      background: rgba(245, 158, 11, 0.2);
+      color: #fbbf24;
+      padding: 2px 6px;
+      border-radius: 4px;
+      border: 1px solid rgba(245, 158, 11, 0.4);
+      font-size: 0.7rem;
+    }
+
+    .tag-normal {
+      background: rgba(16, 185, 129, 0.2);
+      color: #34d399;
+      padding: 2px 6px;
+      border-radius: 4px;
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      font-size: 0.7rem;
+    }
+
+    /* Overcrowd Alert Banner */
+    .alert-banner {
+      background: linear-gradient(90deg, rgba(239, 68, 68, 0.25) 0%, rgba(220, 38, 38, 0.1) 100%);
+      border: 1px solid var(--alert-red);
+      border-radius: 10px;
+      padding: 0.85rem 1.25rem;
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 0 25px rgba(239, 68, 68, 0.35);
+      animation: alertPulse 1.5s infinite;
+    }
+
+    @keyframes alertPulse {
+      0%, 100% { border-color: #ef4444; }
+      50% { border-color: #ff8888; }
+    }
+
+    .alert-banner.active {
+      display: flex;
+    }
+
+    .alert-content {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .alert-icon {
+      font-size: 1.5rem;
+    }
+
+    .alert-title {
+      font-weight: 700;
+      color: #fca5a5;
+      font-size: 0.95rem;
+    }
+
+    .alert-msg {
+      font-size: 0.8rem;
+      color: #fecaca;
+    }
+
+    /* Code Snippets & Viva Card */
+    pre code {
+      display: block;
+      background: #090d16;
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+      padding: 1rem;
+      color: #e2e8f0;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      line-height: 1.5;
+      overflow-x: auto;
+      max-height: 400px;
+    }
+
+    .metric-progress {
+      height: 8px;
+      background: #1e293b;
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 6px;
+    }
+
+    .metric-bar {
+      height: 100%;
+      background: var(--accent-blue);
+      border-radius: 4px;
+      transition: width 0.3s ease;
+    }
+
+    /* Breadboard Graphic */
+    .breadboard-svg {
+      width: 100%;
+      max-height: 380px;
+      background: #0e1626;
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navigation Header -->
+  <header>
+    <div class="brand-group">
+      <div class="brand-logo">MITS</div>
+      <div class="brand-text">
+        <h1>Smart Bus Overcrowding System <span class="badge-pill">IoT & AI Transit</span></h1>
+        <p>Department of Artificial Intelligence & Data Science | Muthoot Institute of Technology and Science</p>
+      </div>
+    </div>
+
+    <div class="header-metrics">
+      <div class="telemetry-chip">
+        <div class="status-dot"></div>
+        <span>MQTT: CONNECTED</span>
+      </div>
+      <div class="telemetry-chip">
+        <span>LATENCY:</span>
+        <strong id="headerLatency" style="color: var(--accent-blue);">38ms</strong>
+      </div>
+      <div class="telemetry-chip">
+        <span>UPTIME:</span>
+        <strong id="headerUptime" style="color: var(--safe-green);">00:00:00</strong>
+      </div>
+      <button class="btn-audio active" id="btnAudioToggle" title="Enable/Disable Audio Piezo Buzzer">
+        <span id="audioIcon">🔊</span> Buzzer Audio: <strong id="audioStatusText">ON</strong>
+      </button>
+    </div>
+  </header>
+
+  <!-- Tab Navigation -->
+  <nav class="tab-nav">
+    <button class="tab-btn active" onclick="switchTab('sim')">🚌 Bus & Sensor Simulation</button>
+    <button class="tab-btn" onclick="switchTab('driver')">🎛️ Driver In-Bus Terminal</button>
+    <button class="tab-btn" onclick="switchTab('authority')">🏢 Transit Authority Dashboard</button>
+    <button class="tab-btn" onclick="switchTab('hardware')">🔬 Circuit & Logic Analyzer</button>
+  </nav>
+
+  <!-- Overcrowding Critical Alert Banner -->
+  <main>
+    <div class="alert-banner" id="globalAlertBanner">
+      <div class="alert-content">
+        <div class="alert-icon">⚠️</div>
+        <div>
+          <div class="alert-title">OVERCROWDING VIOLATION ALERT — CAPACITY EXCEEDED!</div>
+          <div class="alert-msg" id="alertBannerText">Bus KL-07-MITS-01 has exceeded safe occupancy threshold (46/45). Acoustic alarm triggered. Dispatch alerted.</div>
+        </div>
+      </div>
+      <div>
+        <button class="btn-action btn-surge" onclick="acknowledgeAlert()" style="padding: 0.5rem 1rem;">Acknowledge Alarm</button>
+      </div>
+    </div>
+
+    <!-- TAB 1: BUS & SENSOR SIMULATION -->
+    <div id="tab-sim" class="tab-content active">
+      <div class="stat-row">
+        <div class="stat-card">
+          <span class="stat-title">Current Occupancy</span>
+          <div class="stat-value" id="statOccupancy">0 / 45</div>
+          <div class="stat-sub" id="statCapacitySub">0% capacity utilization</div>
+          <div class="metric-progress">
+            <div class="metric-bar" id="occupancyProgressBar" style="width: 0%;"></div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <span class="stat-title">Current Status</span>
+          <div class="stat-value" id="statStatusText" style="color: var(--safe-green);">NORMAL</div>
+          <div class="stat-sub">Safe limit: 45 passengers</div>
+        </div>
+        <div class="stat-card">
+          <span class="stat-title">Boarded / Alighted</span>
+          <div class="stat-value"><span id="statBoarded">0</span> / <span id="statAlighted">0</span></div>
+          <div class="stat-sub">Today's cumulative passenger turnover</div>
+        </div>
+        <div class="stat-card">
+          <span class="stat-title">Current Route Stop</span>
+          <div class="stat-value" id="statStopName" style="font-size: 1.15rem; color: var(--accent-blue);">Aluva Metro</div>
+          <div class="stat-sub">Next: Kalamassery Junction</div>
+        </div>
+      </div>
+
+      <div class="grid-dashboard">
+        <!-- Interactive Bus Graphic -->
+        <div class="card" style="margin-bottom: 0;">
+          <div class="card-header">
+            <div class="card-title">
+              <span>Interactive Dual-Door Passenger Counting Simulation</span>
+            </div>
+            <div class="route-info">
+              Bus ID: <span>KL-07-MITS-01</span> | Route 42: Aluva &rarr; Kakkanad InfoPark
+            </div>
+          </div>
+
+          <div class="bus-stage-container">
+            <div class="bus-graphic">
+              <!-- Bus Roof & Emergency Exits -->
+              <div class="bus-roof">
+                <span class="bus-badge">🚌 KSRTC LOW-FLOOR SMART TRANSIT</span>
+                <span style="font-size: 0.75rem; color: var(--text-dim);">FRONT (ENTRY) &rarr;&rarr;&rarr; REAR (EXIT)</span>
+                <span class="bus-badge">MITS AI &amp; DS LAB 2026</span>
+              </div>
+
+              <!-- Bus Interior View -->
+              <div class="bus-interior">
+                <!-- Driver Cabin -->
+                <div class="driver-cabin">
+                  <div class="steering-wheel">
+                    <div class="steering-center"></div>
+                  </div>
+                  <div class="driver-avatar">👨‍✈️</div>
+                  <div class="cabin-label">DRIVER</div>
+                </div>
+
+                <!-- Front Door (Boarding) with Dual IR Beam Break -->
+                <div class="door-zone" id="entryDoorZone">
+                  <div class="door-label">ENTRY DOOR</div>
+                  <div class="sensor-beam" id="entryBeamA" title="IR Sensor A (Outer)"></div>
+                  <span style="font-size: 0.6rem; color: #38bdf8;">BEAM A</span>
+                  <div style="font-size: 1.2rem;" id="entryPassengerAvatar">🚶</div>
+                  <span style="font-size: 0.6rem; color: #ec4899;">BEAM B</span>
+                  <div class="sensor-beam beam-b" id="entryBeamB" title="IR Sensor B (Inner)"></div>
+                </div>
+
+                <!-- Passenger Seating & Standing Cabin -->
+                <div class="passenger-cabin">
+                  <!-- Row 1 Seating (15 window/aisle seats) -->
+                  <div class="seat-row" id="seatRowTop">
+                    <!-- 15 seats generated by JS -->
+                  </div>
+
+                  <!-- Central Standing Aisle (Max 15 standees) -->
+                  <div class="aisle-zone" id="aisleZone">
+                    <span class="standing-indicator">STANDING AISLE</span>
+                    <!-- Dynamic Standees -->
+                  </div>
+
+                  <!-- Row 2 Seating (15 window/aisle seats) -->
+                  <div class="seat-row" id="seatRowBottom">
+                    <!-- 15 seats generated by JS -->
+                  </div>
+                </div>
+
+                <!-- Rear Door (Alighting) with Dual IR Beam Break -->
+                <div class="door-zone exit" id="exitDoorZone">
+                  <div class="door-label">EXIT DOOR</div>
+                  <div class="sensor-beam" id="exitBeamA" title="Exit IR Sensor A (Inner)"></div>
+                  <span style="font-size: 0.6rem; color: #38bdf8;">BEAM A</span>
+                  <div style="font-size: 1.2rem;" id="exitPassengerAvatar">🚶</div>
+                  <span style="font-size: 0.6rem; color: #ec4899;">BEAM B</span>
+                  <div class="sensor-beam beam-b" id="exitBeamB" title="Exit IR Sensor B (Outer)"></div>
+                </div>
+              </div>
+
+              <!-- Floor Legend -->
+              <div style="display: flex; justify-content: space-between; font-size: 0.7rem; color: var(--text-dim); margin-top: 4px;">
+                <span>🟢 30 Seated Capacity</span>
+                <span>🟡 15 Standing Capacity</span>
+                <span>🔴 45 Max Safe Limit</span>
+                <span id="seatOccupancyText">Seats: 0/30 | Standing: 0/15</span>
+              </div>
+            </div>
+
+            <!-- Simulation Controls -->
+            <div class="control-deck">
+              <button class="btn-action btn-entry" onclick="simulateBoarding()">
+                <span>🚶+1</span> Step In (Entry Beam)
+              </button>
+              <button class="btn-action btn-exit" onclick="simulateAlighting()">
+                <span>🚶-1</span> Step Out (Exit Beam)
+              </button>
+              <button class="btn-action btn-entry" onclick="bulkBoarding(5)">
+                <span>👥+5</span> Group Boarding
+              </button>
+              <button class="btn-action btn-exit" onclick="bulkAlighting(5)">
+                <span>👥-5</span> Stop Deboarding
+              </button>
+              <button class="btn-action btn-surge" onclick="triggerOvercrowdingSurge()">
+                <span>🚨</span> Rush Hour Surge (48)
+              </button>
+              <button class="btn-action" onclick="resetBus()">
+                <span>🔄</span> Reset Empty
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Side: Mini Driver Cockpit Widget & Route Simulation -->
+        <div>
+          <!-- Mini Cockpit -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Driver Cockpit Unit</div>
+              <span class="badge-pill">HARDWARE FEED</span>
+            </div>
+
+            <div class="cockpit-panel">
+              <!-- LCD 1602 Simulation -->
+              <div class="lcd-screen">
+                <div class="lcd-line" id="lcdLine1">OCC:  0/45 [  0%]</div>
+                <div class="lcd-line" id="lcdLine2">STATUS: NORMAL  </div>
+              </div>
+
+              <!-- LEDs -->
+              <div class="led-cluster">
+                <div class="led-wrapper">
+                  <div class="led-bulb led-green active" id="cockpitLedGreen"></div>
+                  <div class="led-label">SAFE</div>
+                </div>
+                <div class="led-wrapper">
+                  <div class="led-bulb led-yellow" id="cockpitLedYellow"></div>
+                  <div class="led-label">WARN</div>
+                </div>
+                <div class="led-wrapper">
+                  <div class="led-bulb led-red" id="cockpitLedRed"></div>
+                  <div class="led-label">OVERCROWD</div>
+                </div>
+              </div>
+
+              <!-- Buzzer Audio Box -->
+              <div class="buzzer-box" id="cockpitBuzzerBox">
+                <div>
+                  <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-main);">PIEZO BUZZER 2.4kHz</div>
+                  <div style="font-size: 0.65rem; color: var(--text-muted);" id="buzzerStatusLabel">MUTE / QUIET</div>
+                </div>
+                <div class="buzzer-grill">
+                  <div class="buzzer-slit"></div>
+                  <div class="buzzer-slit"></div>
+                  <div class="buzzer-slit"></div>
+                  <div class="buzzer-slit"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Automated Route Controller -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Automated Route Sim</div>
+              <span id="routeSimBadge" class="badge-pill" style="background: rgba(16, 185, 129, 0.15); color: var(--safe-green);">READY</span>
+            </div>
+            <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+              Simulates realistic bus travel along Kochi Route 42 with autonomous stop arrivals, boardings, and deboardings.
+            </p>
+            <div style="display: flex; gap: 0.5rem; margin-bottom: 0.75rem;">
+              <button class="btn-action" id="btnToggleRouteSim" onclick="toggleRouteSimulation()" style="flex: 1;">
+                ▶️ Start Autonomous Trip
+              </button>
+              <select id="routeSpeedSelect" style="background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.4rem; font-size: 0.8rem;">
+                <option value="1">1x Speed</option>
+                <option value="2">2x Speed</option>
+                <option value="4">4x Speed</option>
+              </select>
+            </div>
+            <div style="font-size: 0.75rem; font-family: 'JetBrains Mono', monospace; color: var(--text-dim);" id="routeProgressText">
+              Next Stop in: --s
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: DRIVER IN-BUS TERMINAL -->
+    <div id="tab-driver" class="tab-content">
+      <div class="grid-dashboard">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Driver Heads-Up Operating Console</div>
+            <span class="badge-pill">CABIN UNIT KL-07</span>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 1.5rem; align-items: center; padding: 1.5rem 0;">
+            <!-- Large Industrial LCD Cluster -->
+            <div class="lcd-screen" style="width: 100%; max-width: 600px; padding: 24px 28px; border-width: 5px;">
+              <div class="lcd-line" id="largeLcdLine1" style="font-size: 1.8rem;">OCC:  0/45 [  0%]</div>
+              <div class="lcd-line" id="largeLcdLine2" style="font-size: 1.8rem; margin-top: 8px;">STATUS: NORMAL  </div>
+            </div>
+
+            <!-- Heavy Duty Triple LED Bar -->
+            <div style="display: flex; gap: 3rem; background: #0b111e; padding: 1.5rem 3rem; border-radius: 16px; border: 2px solid #223049;">
+              <div class="led-wrapper">
+                <div class="led-bulb led-green active" id="driverLedGreen" style="width: 48px; height: 48px;"></div>
+                <div class="led-label" style="font-size: 0.8rem; margin-top: 6px;">SAFE (< 75%)</div>
+              </div>
+              <div class="led-wrapper">
+                <div class="led-bulb led-yellow" id="driverLedYellow" style="width: 48px; height: 48px;"></div>
+                <div class="led-label" style="font-size: 0.8rem; margin-top: 6px;">WARN (75-99%)</div>
+              </div>
+              <div class="led-wrapper">
+                <div class="led-bulb led-red" id="driverLedRed" style="width: 48px; height: 48px;"></div>
+                <div class="led-label" style="font-size: 0.8rem; margin-top: 6px;">OVERCROWD (100%+)</div>
+              </div>
+            </div>
+
+            <!-- Driver Action Controls -->
+            <div style="display: flex; gap: 1rem; width: 100%; max-width: 600px;">
+              <button class="btn-action" style="flex: 1;" onclick="acknowledgeAlert()">
+                🔕 Mute / Acknowledge Warning
+              </button>
+              <button class="btn-action btn-entry" style="flex: 1;" onclick="playCabinAnnouncement()">
+                📢 Play Passenger Warning PA
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Driver Safety Protocol</div>
+          </div>
+          <div style="font-size: 0.85rem; color: var(--text-muted); display: flex; flex-direction: column; gap: 0.85rem; line-height: 1.5;">
+            <div style="padding: 0.75rem; background: rgba(16, 185, 129, 0.1); border-left: 3px solid var(--safe-green); border-radius: 4px;">
+              <strong style="color: var(--safe-green);">0 - 35 Passengers: Normal Operation</strong><br>
+              All passengers seated or safe standing. Green LED engaged. Doors close normally.
+            </div>
+            <div style="padding: 0.75rem; background: rgba(245, 158, 11, 0.1); border-left: 3px solid var(--warn-amber); border-radius: 4px;">
+              <strong style="color: var(--warn-amber);">36 - 44 Passengers: Warning Stage</strong><br>
+              Aisle capacity near saturation. Yellow LED engaged. Driver monitors entry queue.
+            </div>
+            <div style="padding: 0.75rem; background: rgba(239, 68, 68, 0.1); border-left: 3px solid var(--alert-red); border-radius: 4px;">
+              <strong style="color: var(--alert-red);">45+ Passengers: Critical Overcrowd</strong><br>
+              2.4kHz acoustic alarm sounds continuously. Red LED pulses. Stop boarding immediately.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: TRANSIT AUTHORITY CLOUD DASHBOARD -->
+    <div id="tab-authority" class="tab-content">
+      <div class="stat-row">
+        <div class="stat-card">
+          <span class="stat-title">Fleet Bus ID</span>
+          <div class="stat-value" style="color: var(--accent-blue);">KL-07-01</div>
+          <div class="stat-sub">Model: Ashok Leyland JanBus</div>
+        </div>
+        <div class="stat-card">
+          <span class="stat-title">Capacity Compliance</span>
+          <div class="stat-value" id="authorityComplianceRate">100%</div>
+          <div class="stat-sub">Regulatory safety index</div>
+        </div>
+        <div class="stat-card">
+          <span class="stat-title">Overcrowding Incidents</span>
+          <div class="stat-value" id="authorityViolationCount" style="color: var(--alert-red);">0</div>
+          <div class="stat-sub">Today's recorded breaches</div>
+        </div>
+        <div class="stat-card">
+          <span class="stat-title">Cloud Sync Latency</span>
+          <div class="stat-value" style="color: var(--accent-cyan);"><span id="authorityLatency">42</span> ms</div>
+          <div class="stat-sub">Target: &lt; 2000 ms (&plusmn;5% accuracy)</div>
+        </div>
+      </div>
+
+      <div class="grid-dashboard">
+        <!-- Live Occupancy Graph -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Live Occupancy vs Time &amp; Stops</div>
+            <button class="btn-action" style="padding: 0.3rem 0.7rem; font-size: 0.75rem;" onclick="clearHistoryLog()">Clear Chart</button>
+          </div>
+          <canvas id="occupancyChart" class="waveform-canvas" style="height: 220px;"></canvas>
+          <div style="display: flex; justify-content: space-between; font-size: 0.7rem; color: var(--text-dim); margin-top: 6px;">
+            <span>&mdash; Safe Seating (30)</span>
+            <span>&mdash; Max Capacity Limit (45)</span>
+            <span>&mdash; Real-time Occupancy Profile</span>
+          </div>
+        </div>
+
+        <!-- Dispatch Actions -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Fleet Dispatch Center</div>
+          </div>
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">
+            When sustained overcrowding is detected on Route 42, dispatch relief fleet vehicles or re-route headway.
+          </p>
+          <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+            <button class="btn-action btn-entry" onclick="dispatchReliefBus()">
+              🚌 Dispatch Relief Bus #KL-07-02
+            </button>
+            <button class="btn-action" onclick="exportIncidentCsv()">
+              📥 Export Overcrowding Audit (CSV)
+            </button>
+            <div id="dispatchStatusMessage" style="font-size: 0.75rem; color: var(--accent-blue); font-family: 'JetBrains Mono', monospace;">
+              Fleet status: Ready on schedule
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Overcrowding Incidents Log Table -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Overcrowding Violation Audit Trail</div>
+          <span class="badge-pill">EVENT LOG</span>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Timestamp</th>
+                <th>Bus ID</th>
+                <th>Stop Name</th>
+                <th>Occupancy / Limit</th>
+                <th>Overload %</th>
+                <th>Severity</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="incidentTableBody">
+              <tr>
+                <td colspan="7" style="text-align: center; color: var(--text-dim);">No overcrowding violations recorded yet. All transit operating within safe thresholds.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 4: VIRTUAL BREADBOARD & LOGIC ANALYZER -->
+    <div id="tab-hardware" class="tab-content">
+      <div class="grid-dashboard">
+        <!-- Interactive Logic Analyzer -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Dual IR Beam Break Logic Analyzer</div>
+            <span class="badge-pill">PULSE TIMING</span>
+          </div>
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.5rem;">
+            Captures real-time digital transitions on Arduino Pin D2 (IR Sensor A) and Pin D3 (IR Sensor B) to determine passenger entry vs exit direction.
+          </p>
+          <canvas id="logicCanvas" class="waveform-canvas" style="height: 180px;"></canvas>
+          <div style="margin-top: 0.75rem; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: var(--text-muted);">
+            Current State: <strong id="logicStateName" style="color: var(--accent-blue);">STATE_IDLE</strong> | 
+            Direction: <strong id="logicDirectionText" style="color: var(--safe-green);">Awaiting Motion</strong>
+          </div>
+        </div>
+
+        <!-- Microcontroller Live Pin Inspector -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">MCU Pinout State Monitor</div>
+            <span class="badge-pill">ATmega328P / ESP32</span>
+          </div>
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; display: flex; flex-direction: column; gap: 0.5rem;">
+            <div class="buzzer-box" style="padding: 0.4rem 0.8rem;">
+              <span>PIN D2 (IR Entry A)</span>
+              <strong id="pinD2State" style="color: var(--safe-green);">HIGH (BEAM INTACT)</strong>
+            </div>
+            <div class="buzzer-box" style="padding: 0.4rem 0.8rem;">
+              <span>PIN D3 (IR Entry B)</span>
+              <strong id="pinD3State" style="color: var(--safe-green);">HIGH (BEAM INTACT)</strong>
+            </div>
+            <div class="buzzer-box" style="padding: 0.4rem 0.8rem;">
+              <span>PIN D6/D7 (HC-SR04 Echo)</span>
+              <strong id="pinEchoState" style="color: var(--accent-cyan);">142 cm (CLEAR)</strong>
+            </div>
+            <div class="buzzer-box" style="padding: 0.4rem 0.8rem;">
+              <span>PIN D8 (Green LED)</span>
+              <strong id="pinD8State" style="color: var(--safe-green);">HIGH (ON)</strong>
+            </div>
+            <div class="buzzer-box" style="padding: 0.4rem 0.8rem;">
+              <span>PIN D9 (Yellow LED)</span>
+              <strong id="pinD9State" style="color: var(--text-dim);">LOW (OFF)</strong>
+            </div>
+            <div class="buzzer-box" style="padding: 0.4rem 0.8rem;">
+              <span>PIN D10 (Red LED)</span>
+              <strong id="pinD10State" style="color: var(--text-dim);">LOW (OFF)</strong>
+            </div>
+            <div class="buzzer-box" style="padding: 0.4rem 0.8rem;">
+              <span>PIN D11 (Buzzer PWM)</span>
+              <strong id="pinD11State" style="color: var(--text-dim);">0 Hz (QUIET)</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Circuit Diagram Schematic Viewer -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">System Hardware Architecture Diagram</div>
+          <span class="badge-pill">IoT SENSOR LAYER &rarr; PROCESSING &rarr; ACTUATORS</span>
+        </div>
+        <div style="display: flex; justify-content: center; padding: 1rem; background: #080d16; border-radius: 8px; overflow-x: auto;">
+          <pre style="color: #38bdf8; font-size: 0.75rem; line-height: 1.4; border: none; background: transparent;"><code style="background: transparent; border: none;">
++---------------------------------------------------------------------------------------------------+
+|                                  SMART BUS HARDWARE TOPOLOGY                                      |
++---------------------------------------------------------------------------------------------------+
+|  [ENTRY DOOR]                                                                                     |
+|  - IR Sensor A (Outer) --------> D2 (Pin 2) \                                                    |
+|  - IR Sensor B (Inner) --------> D3 (Pin 3) --+--> [ ARDUINO UNO / ESP32 MCU ]                   |
+|  - HC-SR04 Trig/Echo ---------> D6 / D7    /      - Dual-beam state machine                       |
+|                                                   - Capacity comparison engine                    |
+|  [EXIT DOOR]                                      - Debounce & timing filter                      |
+|  - IR Sensor A (Inner) --------> D4 (Pin 4) \     - Non-blocking millis() loop                    |
+|  - IR Sensor B (Outer) --------> D5 (Pin 5) --+                                                   |
+|                                                   |                                               |
+|                                                   +---> I2C Bus (A4/A5) ---> [ LCD 1602 Display ]|
+|                                                   +---> Pin D8 -----------> [ Green LED (Safe) ]  |
+|                                                   +---> Pin D9 -----------> [ Yellow LED (Warn) ] |
+|                                                   +---> Pin D10 ----------> [ Red LED (Alert) ]   |
+|                                                   +---> Pin D11 (PWM) ----> [ Piezo Buzzer 2.4k ]|
+|                                                   +---> UART/WiFi (MQTT) -> [ Cloud Dashboard ]   |
++---------------------------------------------------------------------------------------------------+
+          </code></pre>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    /* =========================================================================
+     * SMART BUS OVERCROWDING DETECTION & ALERT SYSTEM
+     * Authors: Edwin Thomas (29), Adwaith Vimal (12), Bevan Bince (26), Joswin Thomas (40)
+     * ========================================================================= */
+
+    // Constants & Limits
+    const SEAT_CAPACITY = 30;
+    const STAND_CAPACITY = 15;
+    const MAX_CAPACITY = 45; // 30 seats + 15 standees
+    const WARN_THRESHOLD = 36; // 80%
+
+    // System State
+    let occupancy = 0;
+    let totalBoarded = 0;
+    let totalAlighted = 0;
+    let isWarning = false;
+    let isOvercrowded = false;
+    let audioEnabled = true;
+    let audioCtx = null;
+    let buzzerInterval = null;
+    let alertAcknowledged = false;
+    let violationCount = 0;
+    let incidentLog = [];
+    let uptimeSeconds = 0;
+
+    // Kochi Transit Route 42 Stops
+    const routeStops = [
+      "Aluva Metro Terminal",
+      "Muttom Metro Station",
+      "Kalamassery Premier Jn",
+      "CUSAT Junction",
+      "Edappally Toll (Peak)",
+      "Oberon Mall - Palarivattom",
+      "Kakkanad Civil Station",
+      "InfoPark Express Terminal"
+    ];
+    let currentStopIdx = 0;
+    let routeSimInterval = null;
+    let routeSimActive = false;
+    let stopCountdown = 8;
+
+    // Logic Analyzer State
+    let logicHistory = [];
+    for (let i = 0; i < 100; i++) {
+      logicHistory.push({ a: 1, b: 1, state: 'IDLE' });
+    }
+
+    // Occupancy Graph History
+    let occupancyHistory = [{ time: '00:00', occ: 0 }];
+
+    // Initialize Web Audio API on first user gesture
+    function initAudio() {
+      if (!audioCtx) {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (AudioContextClass) {
+          audioCtx = new AudioContextClass();
+        }
+      }
+      if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    // Play Synthesized Acoustic Beep (Simulating Piezo Buzzer 2.4kHz)
+    function playBeep(freq = 2400, durationMs = 120, type = 'square') {
+      if (!audioEnabled) return;
+      try {
+        initAudio();
+        if (!audioCtx) return;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + (durationMs / 1000));
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + (durationMs / 1000));
+      } catch (e) {
+        console.warn("Audio play prevented:", e);
+      }
+    }
+
+    // Voice announcement synthesizer for PA system
+    function playCabinAnnouncement() {
+      if ('speechSynthesis' in window) {
+        let msg = "";
+        if (occupancy >= MAX_CAPACITY) {
+          msg = "Attention passengers. Bus has reached maximum safe capacity of 45 passengers. Boarding is strictly halted.";
+        } else if (occupancy >= WARN_THRESHOLD) {
+          msg = "Warning. Bus is approaching maximum capacity. Please move inside and hold handrails.";
+        } else {
+          msg = "Bus occupancy normal. Welcome to KSRTC Smart Transit.";
+        }
+        const utterance = new SpeechSynthesisUtterance(msg);
+        utterance.rate = 1.0;
+        utterance.pitch = 1.0;
+        window.speechSynthesis.speak(utterance);
+      } else {
+        playBeep(1800, 400);
+      }
+    }
+
+    // Generate Bus Seats in UI
+    function buildBusSeats() {
+      const topRow = document.getElementById("seatRowTop");
+      const bottomRow = document.getElementById("seatRowBottom");
+      topRow.innerHTML = "";
+      bottomRow.innerHTML = "";
+
+      for (let i = 0; i < 15; i++) {
+        const seatT = document.createElement("div");
+        seatT.className = "seat";
+        seatT.id = `seat-top-${i}`;
+        seatT.title = `Seat #${i + 1}`;
+        seatT.innerText = "💺";
+        topRow.appendChild(seatT);
+
+        const seatB = document.createElement("div");
+        seatB.className = "seat";
+        seatB.id = `seat-bottom-${i}`;
+        seatB.title = `Seat #${i + 16}`;
+        seatB.innerText = "💺";
+        bottomRow.appendChild(seatB);
+      }
+    }
+
+    // Update Visual Bus Seat & Aisle Occupancy
+    function renderBusInterior() {
+      const seatedCount = Math.min(occupancy, SEAT_CAPACITY);
+      const standingCount = Math.max(0, occupancy - SEAT_CAPACITY);
+
+      // Render top row seats (0 - 14)
+      for (let i = 0; i < 15; i++) {
+        const sTop = document.getElementById(`seat-top-${i}`);
+        if (sTop) {
+          if (i < seatedCount) {
+            sTop.classList.add("occupied");
+            sTop.innerText = "👤";
+          } else {
+            sTop.classList.remove("occupied");
+            sTop.innerText = "💺";
+          }
+        }
+      }
+
+      // Render bottom row seats (15 - 29)
+      for (let i = 0; i < 15; i++) {
+        const sBottom = document.getElementById(`seat-bottom-${i}`);
+        const seatIdx = 15 + i;
+        if (sBottom) {
+          if (seatIdx < seatedCount) {
+            sBottom.classList.add("occupied");
+            sBottom.innerText = "👤";
+          } else {
+            sBottom.classList.remove("occupied");
+            sBottom.innerText = "💺";
+          }
+        }
+      }
+
+      // Render Standing Aisle
+      const aisle = document.getElementById("aisleZone");
+      aisle.innerHTML = `<span class="standing-indicator">STANDING AISLE (${standingCount}/${STAND_CAPACITY})</span>`;
+      
+      const maxDisplayStandees = Math.min(standingCount, 25);
+      for (let i = 0; i < maxDisplayStandees; i++) {
+        const standee = document.createElement("div");
+        standee.className = `standee ${occupancy > MAX_CAPACITY ? 'overcrowd' : ''}`;
+        standee.innerText = "🚶";
+        standee.title = `Standing passenger #${i + 1}`;
+        aisle.appendChild(standee);
+      }
+
+      document.getElementById("seatOccupancyText").innerText = 
+        `Seats: ${seatedCount}/${SEAT_CAPACITY} | Standing: ${standingCount}/${STAND_CAPACITY} | Total: ${occupancy}/${MAX_CAPACITY}`;
+    }
+
+    // Update All System Gauges, LCDs, Actuators & States
+    function updateSystemState() {
+      const pct = Math.round((occupancy / MAX_CAPACITY) * 100);
+      isWarning = (occupancy >= WARN_THRESHOLD && occupancy < MAX_CAPACITY);
+      isOvercrowded = (occupancy >= MAX_CAPACITY);
+
+      // Update Top Stats
+      document.getElementById("statOccupancy").innerText = `${occupancy} / ${MAX_CAPACITY}`;
+      document.getElementById("statCapacitySub").innerText = `${pct}% capacity utilization`;
+      document.getElementById("occupancyProgressBar").style.width = `${Math.min(pct, 100)}%`;
+
+      const statusEl = document.getElementById("statStatusText");
+      if (isOvercrowded) {
+        statusEl.innerText = "OVERCROWDED";
+        statusEl.style.color = "var(--alert-red)";
+        document.getElementById("occupancyProgressBar").style.background = "var(--alert-red)";
+      } else if (isWarning) {
+        statusEl.innerText = "WARNING";
+        statusEl.style.color = "var(--warn-amber)";
+        document.getElementById("occupancyProgressBar").style.background = "var(--warn-amber)";
+      } else {
+        statusEl.innerText = "NORMAL";
+        statusEl.style.color = "var(--safe-green)";
+        document.getElementById("occupancyProgressBar").style.background = "var(--safe-green)";
+      }
+
+      document.getElementById("statBoarded").innerText = totalBoarded;
+      document.getElementById("statAlighted").innerText = totalAlighted;
+
+      // Update LCDs (16x2 simulated)
+      const lcdLine1Text = `OCC:${occupancy < 10 ? ' ' : ''}${occupancy}/${MAX_CAPACITY} [${pct < 100 ? (pct < 10 ? '  ' : ' ') : ''}${pct}%]`;
+      let lcdLine2Text = "STATUS: NORMAL  ";
+      if (isOvercrowded) lcdLine2Text = "! OVERCROWDED ! ";
+      else if (isWarning) lcdLine2Text = "STATUS: WARNING ";
+
+      document.getElementById("lcdLine1").innerText = lcdLine1Text;
+      document.getElementById("lcdLine2").innerText = lcdLine2Text;
+      document.getElementById("largeLcdLine1").innerText = lcdLine1Text;
+      document.getElementById("largeLcdLine2").innerText = lcdLine2Text;
+
+      // Update LEDs
+      const greenLeds = [document.getElementById("cockpitLedGreen"), document.getElementById("driverLedGreen")];
+      const yellowLeds = [document.getElementById("cockpitLedYellow"), document.getElementById("driverLedYellow")];
+      const redLeds = [document.getElementById("cockpitLedRed"), document.getElementById("driverLedRed")];
+
+      greenLeds.forEach(el => el.classList.toggle("active", !isWarning && !isOvercrowded));
+      yellowLeds.forEach(el => el.classList.toggle("active", isWarning));
+      redLeds.forEach(el => el.classList.toggle("active", isOvercrowded));
+
+      // Update MCU Pin States
+      document.getElementById("pinD8State").innerText = (!isWarning && !isOvercrowded) ? "HIGH (ON)" : "LOW (OFF)";
+      document.getElementById("pinD8State").style.color = (!isWarning && !isOvercrowded) ? "var(--safe-green)" : "var(--text-dim)";
+      document.getElementById("pinD9State").innerText = isWarning ? "HIGH (ON)" : "LOW (OFF)";
+      document.getElementById("pinD9State").style.color = isWarning ? "var(--warn-amber)" : "var(--text-dim)";
+      document.getElementById("pinD10State").innerText = isOvercrowded ? "HIGH (ALERT)" : "LOW (OFF)";
+      document.getElementById("pinD10State").style.color = isOvercrowded ? "var(--alert-red)" : "var(--text-dim)";
+      document.getElementById("pinD11State").innerText = isOvercrowded ? "2400 Hz (ALARM)" : (isWarning ? "1600 Hz (CHIRP)" : "0 Hz (QUIET)");
+      document.getElementById("pinD11State").style.color = isOvercrowded ? "var(--alert-red)" : (isWarning ? "var(--warn-amber)" : "var(--text-dim)");
+
+      // Overcrowding Buzzer Management
+      const buzzerBox = document.getElementById("cockpitBuzzerBox");
+      const alertBanner = document.getElementById("globalAlertBanner");
+
+      if (isOvercrowded) {
+        buzzerBox.classList.add("active");
+        document.getElementById("buzzerStatusLabel").innerText = "2.4kHz ACTIVE ALARM";
+        document.getElementById("buzzerStatusLabel").style.color = "var(--alert-red)";
+        
+        if (!alertAcknowledged) {
+          alertBanner.classList.add("active");
+          document.getElementById("alertBannerText").innerText = 
+            `Bus KL-07-MITS-01 exceeded safe capacity (${occupancy}/${MAX_CAPACITY}) at ${routeStops[currentStopIdx]}. Acoustic alert triggered within 2.0s.`;
+        }
+
+        // Trigger continuous pulsing buzzer
+        if (!buzzerInterval && audioEnabled && !alertAcknowledged) {
+          buzzerInterval = setInterval(() => {
+            playBeep(2400, 160);
+          }, 320);
+        }
+      } else {
+        buzzerBox.classList.remove("active");
+        document.getElementById("buzzerStatusLabel").innerText = isWarning ? "INTERMITTENT CHIRP" : "MUTE / QUIET";
+        document.getElementById("buzzerStatusLabel").style.color = isWarning ? "var(--warn-amber)" : "var(--text-muted)";
+        alertBanner.classList.remove("active");
+        if (buzzerInterval) {
+          clearInterval(buzzerInterval);
+          buzzerInterval = null;
+        }
+        alertAcknowledged = false;
+      }
+
+      // Record Violation in incident table if newly triggered
+      if (isOvercrowded && (!incidentLog.length || incidentLog[0].occupancy < MAX_CAPACITY)) {
+        logIncident("CRITICAL", `${occupancy}/${MAX_CAPACITY} passengers (${pct}%)`);
+      }
+
+      // Render Visual Seats
+      renderBusInterior();
+
+      // Push point to Occupancy Timeline Chart
+      const now = new Date();
+      const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+      occupancyHistory.push({ time: timeStr, occ: occupancy });
+      if (occupancyHistory.length > 30) occupancyHistory.shift();
+      drawOccupancyChart();
+    }
+
+    // Directional Beam Break Simulation (Entry Door)
+    // Sequence: Beam A cuts -> Both cut -> Beam B cuts -> Inside
+    function simulateBoarding() {
+      initAudio();
+      const beamA = document.getElementById("entryBeamA");
+      const beamB = document.getElementById("entryBeamB");
+      const pinD2 = document.getElementById("pinD2State");
+      const pinD3 = document.getElementById("pinD3State");
+      const stateLabel = document.getElementById("logicStateName");
+      const dirText = document.getElementById("logicDirectionText");
+
+      // Phase 1: Passenger cuts Beam A
+      beamA.classList.add("triggered");
+      pinD2.innerText = "LOW (BEAM BROKEN)";
+      pinD2.style.color = "var(--alert-red)";
+      stateLabel.innerText = "STATE_BEAM_A_TRIGGERED";
+      dirText.innerText = "Boarding detected (Beam A broken)";
+      recordLogicPulse(0, 1, "BEAM_A");
+
+      setTimeout(() => {
+        // Phase 2: Passenger spans across both beams
+        beamB.classList.add("triggered");
+        pinD3.innerText = "LOW (BEAM BROKEN)";
+        pinD3.style.color = "var(--alert-red)";
+        stateLabel.innerText = "STATE_BOTH_TRIGGERED";
+        recordLogicPulse(0, 0, "BOTH");
+
+        setTimeout(() => {
+          // Phase 3: Passenger leaves Beam A, only Beam B cut
+          beamA.classList.remove("triggered");
+          pinD2.innerText = "HIGH (CLEAR)";
+          pinD2.style.color = "var(--safe-green)";
+          stateLabel.innerText = "STATE_BEAM_B_TRIGGERED";
+          recordLogicPulse(1, 0, "BEAM_B");
+
+          setTimeout(() => {
+            // Phase 4: Passenger fully entered interior
+            beamB.classList.remove("triggered");
+            pinD3.innerText = "HIGH (CLEAR)";
+            pinD3.style.color = "var(--safe-green)";
+            stateLabel.innerText = "STATE_IDLE";
+            dirText.innerText = "+1 Passenger Counted";
+            recordLogicPulse(1, 1, "IDLE");
+
+            occupancy++;
+            totalBoarded++;
+            playBeep(1800, 70); // Crisp entry confirmation pip
+            updateSystemState();
+          }, 120);
+        }, 120);
+      }, 120);
+    }
+
+    // Directional Beam Break Simulation (Exit Door)
+    // Sequence: Beam A (Inner) cuts -> Both cut -> Beam B (Outer) cuts -> Out
+    function simulateAlighting() {
+      if (occupancy <= 0) return;
+      initAudio();
+      const beamA = document.getElementById("exitBeamA");
+      const beamB = document.getElementById("exitBeamB");
+      const stateLabel = document.getElementById("logicStateName");
+      const dirText = document.getElementById("logicDirectionText");
+
+      beamA.classList.add("triggered");
+      stateLabel.innerText = "EXIT_BEAM_A_TRIGGERED";
+      dirText.innerText = "Alighting detected (Exit Beam A)";
+      recordLogicPulse(0, 1, "EXIT_A");
+
+      setTimeout(() => {
+        beamB.classList.add("triggered");
+        stateLabel.innerText = "EXIT_BOTH_TRIGGERED";
+        recordLogicPulse(0, 0, "EXIT_BOTH");
+
+        setTimeout(() => {
+          beamA.classList.remove("triggered");
+          stateLabel.innerText = "EXIT_BEAM_B_TRIGGERED";
+          recordLogicPulse(1, 0, "EXIT_B");
+
+          setTimeout(() => {
+            beamB.classList.remove("triggered");
+            stateLabel.innerText = "STATE_IDLE";
+            dirText.innerText = "-1 Passenger Deboarded";
+            recordLogicPulse(1, 1, "IDLE");
+
+            if (occupancy > 0) occupancy--;
+            totalAlighted++;
+            playBeep(1100, 70); // Lower exit pip
+            updateSystemState();
+          }, 120);
+        }, 120);
+      }, 120);
+    }
+
+    // Bulk Passenger Boarding
+    function bulkBoarding(count) {
+      initAudio();
+      let added = 0;
+      const interval = setInterval(() => {
+        simulateBoarding();
+        added++;
+        if (added >= count) clearInterval(interval);
+      }, 260);
+    }
+
+    // Bulk Passenger Alighting
+    function bulkAlighting(count) {
+      initAudio();
+      let removed = 0;
+      const interval = setInterval(() => {
+        if (occupancy > 0) simulateAlighting();
+        removed++;
+        if (removed >= count || occupancy <= 0) clearInterval(interval);
+      }, 260);
+    }
+
+    // Trigger Instant Rush Hour Overcrowding Surge (48 Passengers)
+    function triggerOvercrowdingSurge() {
+      initAudio();
+      occupancy = 48; // Exceeds safe 45 limit
+      totalBoarded += 15;
+      playBeep(2400, 300);
+      updateSystemState();
+    }
+
+    // Reset Bus to Empty
+    function resetBus() {
+      occupancy = 0;
+      alertAcknowledged = false;
+      updateSystemState();
+    }
+
+    // Acknowledge Global Alert Banner & Mute Alarm
+    function acknowledgeAlert() {
+      alertAcknowledged = true;
+      document.getElementById("globalAlertBanner").classList.remove("active");
+      if (buzzerInterval) {
+        clearInterval(buzzerInterval);
+        buzzerInterval = null;
+      }
+      document.getElementById("buzzerStatusLabel").innerText = "ALARM MUTED (ACKNOWLEDGED)";
+    }
+
+    // Record Logic Pulse to Waveform Array
+    function recordLogicPulse(valA, valB, state) {
+      logicHistory.push({ a: valA, b: valB, state: state });
+      if (logicHistory.length > 80) logicHistory.shift();
+      drawLogicAnalyzer();
+    }
+
+    // Draw Logic Analyzer Waveform on Canvas
+    function drawLogicAnalyzer() {
+      const canvas = document.getElementById("logicCanvas");
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
+      const w = canvas.width = canvas.parentElement.clientWidth - 20;
+      const h = canvas.height = 180;
+
+      ctx.fillStyle = "#06090e";
+      ctx.fillRect(0, 0, w, h);
+
+      // Grid Lines
+      ctx.strokeStyle = "#162030";
+      ctx.lineWidth = 1;
+      for (let y = 30; y < h; y += 30) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(w, y);
+        ctx.stroke();
+      }
+
+      const stepX = w / logicHistory.length;
+
+      // Channel 1: IR Sensor A (Top Trace)
+      ctx.strokeStyle = "#38bdf8";
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      for (let i = 0; i < logicHistory.length; i++) {
+        const item = logicHistory[i];
+        const x = i * stepX;
+        const y = item.a === 1 ? 35 : 75; // HIGH = 35, LOW = 75
+        if (i === 0) ctx.moveTo(x, y);
+        else {
+          const prevY = logicHistory[i - 1].a === 1 ? 35 : 75;
+          ctx.lineTo(x, prevY);
+          ctx.lineTo(x, y);
+        }
+      }
+      ctx.stroke();
+
+      // Channel 2: IR Sensor B (Bottom Trace)
+      ctx.strokeStyle = "#ec4899";
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      for (let i = 0; i < logicHistory.length; i++) {
+        const item = logicHistory[i];
+        const x = i * stepX;
+        const y = item.b === 1 ? 115 : 155; // HIGH = 115, LOW = 155
+        if (i === 0) ctx.moveTo(x, y);
+        else {
+          const prevY = logicHistory[i - 1].b === 1 ? 115 : 155;
+          ctx.lineTo(x, prevY);
+          ctx.lineTo(x, y);
+        }
+      }
+      ctx.stroke();
+
+      // Trace Labels
+      ctx.fillStyle = "#38bdf8";
+      ctx.font = "11px 'JetBrains Mono'";
+      ctx.fillText("CH1: PIN D2 (IR Sensor A)", 10, 22);
+
+      ctx.fillStyle = "#ec4899";
+      ctx.fillText("CH2: PIN D3 (IR Sensor B)", 10, 105);
+    }
+
+    // Draw Occupancy Timeline Chart
+    function drawOccupancyChart() {
+      const canvas = document.getElementById("occupancyChart");
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
+      const w = canvas.width = canvas.parentElement.clientWidth - 20;
+      const h = canvas.height = 220;
+
+      ctx.fillStyle = "#06090e";
+      ctx.fillRect(0, 0, w, h);
+
+      // Threshold lines
+      const seatY = h - (SEAT_CAPACITY / 60) * (h - 40) - 20;
+      const maxCapY = h - (MAX_CAPACITY / 60) * (h - 40) - 20;
+
+      // 30 Seat Line
+      ctx.strokeStyle = "rgba(16, 185, 129, 0.4)";
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.moveTo(0, seatY);
+      ctx.lineTo(w, seatY);
+      ctx.stroke();
+
+      // 45 Safe Limit Line
+      ctx.strokeStyle = "rgba(239, 68, 68, 0.5)";
+      ctx.beginPath();
+      ctx.moveTo(0, maxCapY);
+      ctx.lineTo(w, maxCapY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Draw Occupancy Curve
+      if (occupancyHistory.length > 1) {
+        const stepX = w / (occupancyHistory.length - 1);
+        ctx.strokeStyle = "#38bdf8";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+
+        for (let i = 0; i < occupancyHistory.length; i++) {
+          const pt = occupancyHistory[i];
+          const x = i * stepX;
+          const y = h - (pt.occ / 60) * (h - 40) - 20;
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+
+        // Fill gradient
+        const lastX = (occupancyHistory.length - 1) * stepX;
+        ctx.lineTo(lastX, h);
+        ctx.lineTo(0, h);
+        ctx.closePath();
+        const grad = ctx.createLinearGradient(0, 0, 0, h);
+        grad.addColorStop(0, "rgba(56, 189, 248, 0.3)");
+        grad.addColorStop(1, "rgba(56, 189, 248, 0.0)");
+        ctx.fillStyle = grad;
+        ctx.fill();
+      }
+
+      // Labels
+      ctx.fillStyle = "#94a3b8";
+      ctx.font = "10px 'JetBrains Mono'";
+      ctx.fillText("Max Safe Limit (45)", w - 120, maxCapY - 6);
+      ctx.fillText("Seating Cap (30)", w - 110, seatY - 6);
+    }
+
+    // Log Overcrowding Incident in Authority Table
+    function logIncident(severity, details) {
+      violationCount++;
+      document.getElementById("authorityViolationCount").innerText = violationCount;
+      const compliance = Math.max(78, 100 - violationCount * 4);
+      document.getElementById("authorityComplianceRate").innerText = `${compliance}%`;
+
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString();
+      const pct = Math.round((occupancy / MAX_CAPACITY) * 100);
+
+      const incident = {
+        time: timeStr,
+        busId: "KL-07-01",
+        stop: routeStops[currentStopIdx],
+        occupancy: `${occupancy}/${MAX_CAPACITY}`,
+        pct: `${pct}%`,
+        severity: severity,
+        status: "ALERT SENT"
+      };
+
+      incidentLog.unshift(incident);
+
+      const tbody = document.getElementById("incidentTableBody");
+      tbody.innerHTML = "";
+      incidentLog.slice(0, 8).forEach(item => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${item.time}</td>
+          <td><strong style="color: #38bdf8;">${item.busId}</strong></td>
+          <td>${item.stop}</td>
+          <td>${item.occupancy}</td>
+          <td><strong style="color: #f87171;">${item.pct}</strong></td>
+          <td><span class="tag-critical">${item.severity}</span></td>
+          <td><span class="tag-warning">${item.status}</span></td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    // Export Incident Audit Log to CSV
+    function exportIncidentCsv() {
+      if (!incidentLog.length) {
+        alert("No incidents recorded to export yet.");
+        return;
+      }
+      let csv = "Timestamp,Bus_ID,Stop_Name,Occupancy,Overload_Pct,Severity,Status\n";
+      incidentLog.forEach(row => {
+        csv += `"${row.time}","${row.busId}","${row.stop}","${row.occupancy}","${row.pct}","${row.severity}","${row.status}"\n`;
+      });
+      const blob = new Blob([csv], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Smart_Bus_Overcrowding_Report_${Date.now()}.csv`;
+      a.click();
+    }
+
+    // Dispatch Auxiliary Relief Bus
+    function dispatchReliefBus() {
+      const msg = document.getElementById("dispatchStatusMessage");
+      msg.innerText = "🚀 Auxiliary Bus #KL-07-02 dispatched to " + routeStops[currentStopIdx] + "! ETA: 4 mins.";
+      msg.style.color = "var(--safe-green)";
+      playBeep(1600, 100);
+      setTimeout(() => {
+        msg.innerText = "Auxiliary Bus #KL-07-02 arrived at stop. Passenger queue dissipated.";
+      }, 5000);
+    }
+
+    // Clear History
+    function clearHistoryLog() {
+      occupancyHistory = [{ time: '00:00', occ: occupancy }];
+      drawOccupancyChart();
+    }
+
+    // Automated Route Simulation (Kochi Route 42)
+    function toggleRouteSimulation() {
+      const btn = document.getElementById("btnToggleRouteSim");
+      const badge = document.getElementById("routeSimBadge");
+
+      if (routeSimActive) {
+        clearInterval(routeSimInterval);
+        routeSimActive = false;
+        btn.innerHTML = "▶️ Start Autonomous Trip";
+        badge.innerText = "PAUSED";
+        badge.style.color = "var(--warn-amber)";
+      } else {
+        routeSimActive = true;
+        btn.innerHTML = "⏸️ Pause Route Trip";
+        badge.innerText = "RUNNING";
+        badge.style.color = "var(--safe-green)";
+        stopCountdown = 6;
+
+        routeSimInterval = setInterval(() => {
+          const speed = parseInt(document.getElementById("routeSpeedSelect").value) || 1;
+          stopCountdown -= speed;
+
+          if (stopCountdown <= 0) {
+            // Bus arrives at next stop!
+            currentStopIdx = (currentStopIdx + 1) % routeStops.length;
+            const stopName = routeStops[currentStopIdx];
+            document.getElementById("statStopName").innerText = stopName;
+
+            // Generate realistic stop boarding & deboarding
+            const isPeak = stopName.includes("Peak") || stopName.includes("Terminal");
+            const alightNum = Math.min(occupancy, Math.floor(Math.random() * 8) + 2);
+            const boardNum = isPeak ? Math.floor(Math.random() * 12) + 8 : Math.floor(Math.random() * 6) + 2;
+
+            if (alightNum > 0) bulkAlighting(alightNum);
+            setTimeout(() => {
+              bulkBoarding(boardNum);
+            }, 1200);
+
+            stopCountdown = 8;
+          }
+
+          document.getElementById("routeProgressText").innerText = 
+            `Next Stop (${routeStops[(currentStopIdx + 1) % routeStops.length]}): in ${Math.max(1, stopCountdown)}s`;
+        }, 1000);
+      }
+    }
+
+    // Tab Switcher
+    function switchTab(tabId) {
+      document.querySelectorAll(".tab-content").forEach(el => el.classList.remove("active"));
+      document.querySelectorAll(".tab-btn").forEach(el => el.classList.remove("active"));
+      
+      const target = document.getElementById(`tab-${tabId}`);
+      if (target) target.classList.add("active");
+
+      // Find matching button
+      const buttons = document.querySelectorAll(".tab-btn");
+      buttons.forEach(btn => {
+        if (btn.getAttribute("onclick") && btn.getAttribute("onclick").includes(tabId)) {
+          btn.classList.add("active");
+        }
+      });
+
+      // Resize redraw canvases
+      setTimeout(() => {
+        drawLogicAnalyzer();
+        drawOccupancyChart();
+      }, 50);
+    }
+
+    // Audio Toggle
+    document.getElementById("btnAudioToggle").addEventListener("click", () => {
+      audioEnabled = !audioEnabled;
+      const btn = document.getElementById("btnAudioToggle");
+      const status = document.getElementById("audioStatusText");
+      const icon = document.getElementById("audioIcon");
+      if (audioEnabled) {
+        btn.classList.add("active");
+        status.innerText = "ON";
+        icon.innerText = "🔊";
+        playBeep(2000, 100);
+      } else {
+        btn.classList.remove("active");
+        status.innerText = "OFF";
+        icon.innerText = "🔇";
+        if (buzzerInterval) {
+          clearInterval(buzzerInterval);
+          buzzerInterval = null;
+        }
+      }
+    });
+
+    // Uptime & Latency Jitter Clock
+    setInterval(() => {
+      uptimeSeconds++;
+      const hrs = String(Math.floor(uptimeSeconds / 3600)).padStart(2, '0');
+      const mins = String(Math.floor((uptimeSeconds % 3600) / 60)).padStart(2, '0');
+      const secs = String(uptimeSeconds % 60).padStart(2, '0');
+      document.getElementById("headerUptime").innerText = `${hrs}:${mins}:${secs}`;
+
+      // Simulate natural MQTT telemetry ping jitter (32ms - 54ms)
+      const lat = Math.floor(Math.random() * 22) + 32;
+      document.getElementById("headerLatency").innerText = `${lat}ms`;
+      document.getElementById("authorityLatency").innerText = lat;
+    }, 1000);
+
+    // Initial Setup on Page Load
+    window.addEventListener("DOMContentLoaded", () => {
+      buildBusSeats();
+      updateSystemState();
+      drawLogicAnalyzer();
+      drawOccupancyChart();
+    });
+
+    // Window resize redraw
+    window.addEventListener("resize", () => {
+      drawLogicAnalyzer();
+      drawOccupancyChart();
+    });
+  </script>
+</body>
+</html>
